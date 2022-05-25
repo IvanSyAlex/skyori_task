@@ -27,7 +27,7 @@ namespace TestSkyori
         /// <summary>
         /// адресс сайта по умолчанию
         /// </summary>
-        private static string _siteUrl = "https://yandex.ru/";
+        private static string _siteUrl = "https://tproger.ru/devnull/best-404-notfound-pages/";
 
         /// <summary>
         /// Строка подключения к БД

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data.SqlClient;
 using System.Net;
+using System.Net.Http;
 
 namespace TestSkyori
 {
@@ -21,14 +22,13 @@ namespace TestSkyori
             try
             {
                 var request = (HttpWebRequest)WebRequest.Create(uri);
-                request.GetResponse();
+                var response = (HttpWebResponse)request.GetResponse();
+                return new HttpResponseMessage(response.StatusCode).IsSuccessStatusCode;
             }
             catch
             {
                 return false;
             }
-
-            return true;
         }
         
         
