@@ -13,22 +13,44 @@ namespace TestSkyori
         /// </summary>
         /// <param name="url">адрес сайта</param>
         /// <returns>True/False</returns>
-        public bool ConnectionSite(string url)
+        public string  ConnectionSite(string url)
         {
+            var failedResultCheck = url + " - false";
+            
             if (string.IsNullOrEmpty(url))
-                return false;
+                return failedResultCheck;
+
+            
+            if (!CheckValidUrl(url))
+                return failedResultCheck;
 
             var uri = new Uri(url);
             try
             {
                 var request = (HttpWebRequest)WebRequest.Create(uri);
                 var response = (HttpWebResponse)request.GetResponse();
-                return new HttpResponseMessage(response.StatusCode).IsSuccessStatusCode;
+                
+                if (new HttpResponseMessage(response.StatusCode).IsSuccessStatusCode)
+                    return url + " - true";
+                
+                return failedResultCheck;
             }
             catch
             {
-                return false;
+                return failedResultCheck;
             }
+        }
+
+        /// <summary>
+        /// Проверка на правильный формат url
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns></returns>
+        private bool CheckValidUrl(string url)
+        {
+            return Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
+                && (uriResult.Scheme == Uri.UriSchemeHttp
+                    || uriResult.Scheme == Uri.UriSchemeHttps);
         }
         
         
@@ -38,24 +60,24 @@ namespace TestSkyori
         /// </summary>
         /// <param name="connectionString">Строка подключения к базе</param>
         /// <returns>True/False</returns>
-        public bool ConnectionMsSQL(string connectionString)
+        public string  ConnectionMsSQL(string connectionString)
         {
             if (string.IsNullOrEmpty(connectionString))
-                return false;
-            
-            using (SqlConnection connection = new SqlConnection(connectionString))
+                return connectionString + " - false";
+
+            try
             {
-                try
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
                 }
-                catch
-                {
-                    return false;
-                }
             }
-            
-            return true;
+            catch
+            {
+                return connectionString + " - false";
+            }
+
+            return connectionString + " - true";
         }
     }
 }

@@ -18,26 +18,11 @@ namespace TestSkyori
         /// текущая директория
         /// </summary>
         private static string _currentPath = Directory.GetCurrentDirectory();
-
-        /// <summary>
-        /// адресс почты получения письма
-        /// </summary>
-        private static string _emailTo = "sychyov-86@mail.ru";
-
-        /// <summary>
-        /// адресс сайта по умолчанию
-        /// </summary>
-        private static string _siteUrl = "https://tproger.ru/devnull/best-404-notfound-pages/";
-
-        /// <summary>
-        /// Строка подключения к БД
-        /// </summary>
-        private static string
-            _connectionDb = ""; //"Server=LAPTOP-H2QHE71S\SQLEXPRESS;Initial Catalog=Test;Integrated Security=True";
-
         
+
         static void Main(string[] args)
         {
+            var sm = new ScreenManager();
             var path = _currentPath + "\\" + _fileName;
             var send = new SendingEmails();
             var jsonFile = new FileGenerator();
@@ -51,14 +36,18 @@ namespace TestSkyori
                         ShowResult(GetCheckListFromFile(path));
                         return;
                     }
-
-                    GetCheckParameters(args);
                 }
-
-                ConnectionStringExists();
                 
-                jsonFile.WriteJsonFile(RunChecks(), path);
-                send.SendEmail(_emailTo, path);
+                // Запустить экран ввода данных
+                var dataForChecks = sm.Start();
+                if (dataForChecks.ScreenResult == ScreenTypes.StartCheck)
+                {
+                    // Запустить проверки и записать результат в файл
+                    jsonFile.WriteJsonFile(RunChecks(dataForChecks.SiteList,dataForChecks.ConnectionDbStringList), path);
+                
+                    // Отправка файла с результатима проверок  по почте
+                    send.SendEmail(dataForChecks.Email, path);
+                }
             }
             catch (Exception ex)
             {
@@ -66,19 +55,7 @@ namespace TestSkyori
             }
         }
 
-        /// <summary>
-        /// Проверка _connectionDb на пустоту
-        /// Если пустой то просим ввести строку подключению к БД  через консоль
-        /// </summary>
-        private static void ConnectionStringExists()
-        {
-            if (!string.IsNullOrEmpty(_connectionDb))
-                return;
-
-            Console.WriteLine("Введите строку подключению к БД: ");
-            _connectionDb = Console.ReadLine();
-        }
-
+        
         /// <summary>
         /// Выводит на консоль информацию о последней проверке
         /// </summary>
@@ -94,10 +71,18 @@ namespace TestSkyori
 
             var lastCheck = checks.LastOrDefault();
             Console.WriteLine($"Дата и время последней проверки: {lastCheck.VerificationDate}");
-            Console.WriteLine($"Связь с базой данных: {lastCheck.StringConnectionDb}");
-            Console.WriteLine($"Результат проверки: {lastCheck.ConnectMsSqlResult }");
-            Console.WriteLine($"Доступ к сайту: {lastCheck.UrlSite}");
-            Console.WriteLine($"Результат проверки: {lastCheck.ConnectSiteResult}");
+            
+            Console.WriteLine($"Связь с базой данных:");
+            foreach (var item in lastCheck.ConnectMsSqlResult)
+            {
+                Console.WriteLine($"Результат проверки: {item}");
+            }
+            
+            Console.WriteLine($"Связь с Сайтом:");
+            foreach (var item in lastCheck.ConnectSiteResult)
+            {
+                Console.WriteLine($"Результат проверки: {item}");
+            }
         }
 
 
@@ -117,50 +102,25 @@ namespace TestSkyori
 
         
         /// <summary>
-        /// При запуске приложения с параметром 
-        /// Перебарает массив args
-        /// Находит совпадение по ключу и задаёт новое значение
-        /// </summary>
-        /// <param name="args"></param>
-        private static void GetCheckParameters(string[] args)
-        {
-            for (int i = 0; i < args.Length; i++)
-            {
-                var argument = args[i];
-                switch (argument)
-                {
-                    case "-EmailTo":
-                        _emailTo = args[i + 1];
-                        break;
-                    case "-Site":
-                        _siteUrl = args[i + 1];
-                        break;
-                    case "-ConnectionDb":
-                        _connectionDb = args[i + 1];
-                        break;
-                }
-            }
-        }
-        
-        /// <summary>
         /// Провести проверки доступа к БД и сайту
         /// </summary>
         /// <returns>результат проверок</returns>
-        private static Result RunChecks()
+        private static Result RunChecks(List<string> siteUrl, List<string> connectionDb)
         {
             var connection = new Connection();
-            
-            // Запустить проверки и
-            // сформировать модель результата
-            var result = new Result
-            {
-                ConnectSiteResult = connection.ConnectionSite(_siteUrl),
-                ConnectMsSqlResult = connection.ConnectionMsSQL(_connectionDb),
-                StringConnectionDb = _connectionDb,
-                UrlSite = _siteUrl,
-                VerificationDate = DateTime.Now
-            };
+            var result = new Result();
 
+            foreach (var item in siteUrl)
+            {
+                result.ConnectSiteResult.Add(connection.ConnectionSite(item));
+            }
+            
+            foreach (var item in connectionDb)
+            {
+                result.ConnectMsSqlResult.Add(connection.ConnectionMsSQL(item));
+            }
+            
+            result.VerificationDate = DateTime.Now;
             return result;
         }
     }
